@@ -1,0 +1,477 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>TA Analytics Dashboard – NovaTech Solutions</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600;700&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet"/>
+<style>
+  :root {
+    --bg:       #0d1117;
+    --surface:  #161b22;
+    --card:     #1c2128;
+    --border:   #30363d;
+    --accent1:  #58a6ff;
+    --accent2:  #f78166;
+    --accent3:  #3fb950;
+    --accent4:  #d2a8ff;
+    --accent5:  #ffa657;
+    --text:     #e6edf3;
+    --muted:    #8b949e;
+    --teal:     #39d0d8;
+  }
+  * { margin:0; padding:0; box-sizing:border-box; }
+  body { background:var(--bg); color:var(--text); font-family:'DM Sans', sans-serif; min-height:100vh; }
+
+  /* ── TOP BAR ── */
+  .topbar {
+    background: linear-gradient(135deg, #0d1117 0%, #1a1f2e 100%);
+    border-bottom: 1px solid var(--border);
+    padding: 14px 28px;
+    display: flex; align-items: center; justify-content: space-between;
+  }
+  .topbar-left { display:flex; align-items:center; gap:14px; }
+  .logo { width:36px; height:36px; background:var(--accent1); border-radius:8px; display:flex; align-items:center; justify-content:center; font-family:'Space Mono'; font-weight:700; color:#0d1117; font-size:13px; }
+  .brand h1 { font-size:15px; font-weight:700; color:var(--text); letter-spacing:.3px; }
+  .brand p  { font-size:11px; color:var(--muted); margin-top:1px; }
+  .badge { background:#21262d; border:1px solid var(--border); border-radius:20px; padding:4px 12px; font-size:11px; color:var(--muted); font-family:'Space Mono'; }
+  .live-dot { width:7px; height:7px; background:var(--accent3); border-radius:50%; display:inline-block; margin-right:5px; animation: pulse 2s infinite; }
+  @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:.3} }
+
+  /* ── NAV TABS ── */
+  .nav { background:var(--surface); border-bottom:1px solid var(--border); padding:0 28px; display:flex; gap:4px; }
+  .tab { padding:10px 18px; font-size:12px; font-weight:500; color:var(--muted); cursor:pointer; border-bottom:2px solid transparent; transition:all .2s; }
+  .tab:hover { color:var(--text); }
+  .tab.active { color:var(--accent1); border-bottom-color:var(--accent1); }
+
+  /* ── CONTENT ── */
+  .page { display:none; padding:24px 28px; animation: fadeIn .3s ease; }
+  .page.active { display:block; }
+  @keyframes fadeIn { from{opacity:0;transform:translateY(6px)} to{opacity:1;transform:translateY(0)} }
+
+  /* ── KPI CARDS ── */
+  .kpi-grid { display:grid; grid-template-columns:repeat(6,1fr); gap:12px; margin-bottom:20px; }
+  @media(max-width:1100px){ .kpi-grid{ grid-template-columns:repeat(3,1fr); } }
+  .kpi { background:var(--card); border:1px solid var(--border); border-radius:10px; padding:16px; position:relative; overflow:hidden; transition:transform .2s; }
+  .kpi:hover { transform:translateY(-2px); }
+  .kpi::before { content:''; position:absolute; top:0; left:0; right:0; height:3px; }
+  .kpi.k1::before{background:var(--accent1);}
+  .kpi.k2::before{background:var(--teal);}
+  .kpi.k3::before{background:var(--accent3);}
+  .kpi.k4::before{background:var(--accent4);}
+  .kpi.k5::before{background:var(--accent5);}
+  .kpi.k6::before{background:var(--accent2);}
+  .kpi-label { font-size:10px; color:var(--muted); text-transform:uppercase; letter-spacing:.8px; margin-bottom:8px; }
+  .kpi-value { font-family:'Space Mono'; font-size:24px; font-weight:700; line-height:1; }
+  .kpi.k1 .kpi-value{color:var(--accent1);}
+  .kpi.k2 .kpi-value{color:var(--teal);}
+  .kpi.k3 .kpi-value{color:var(--accent3);}
+  .kpi.k4 .kpi-value{color:var(--accent4);}
+  .kpi.k5 .kpi-value{color:var(--accent5);}
+  .kpi.k6 .kpi-value{color:var(--accent2);}
+  .kpi-sub { font-size:10px; color:var(--muted); margin-top:6px; }
+
+  /* ── GRID LAYOUTS ── */
+  .grid-2 { display:grid; grid-template-columns:1fr 1fr; gap:16px; margin-bottom:16px; }
+  .grid-3 { display:grid; grid-template-columns:1fr 1fr 1fr; gap:16px; margin-bottom:16px; }
+  .grid-2-1 { display:grid; grid-template-columns:2fr 1fr; gap:16px; margin-bottom:16px; }
+  .grid-1-2 { display:grid; grid-template-columns:1fr 2fr; gap:16px; margin-bottom:16px; }
+  @media(max-width:900px){ .grid-2,.grid-3,.grid-2-1,.grid-1-2{ grid-template-columns:1fr; } }
+
+  /* ── CHART CARDS ── */
+  .chart-card { background:var(--card); border:1px solid var(--border); border-radius:10px; padding:18px; }
+  .chart-title { font-size:12px; font-weight:600; color:var(--muted); text-transform:uppercase; letter-spacing:.7px; margin-bottom:14px; display:flex; align-items:center; gap:8px; }
+  .chart-title .dot { width:8px; height:8px; border-radius:50%; }
+  .chart-wrap { position:relative; }
+
+  /* ── FUNNEL ── */
+  .funnel-wrap { display:flex; flex-direction:column; gap:6px; }
+  .funnel-row { display:flex; align-items:center; gap:10px; }
+  .funnel-label { width:120px; font-size:11px; color:var(--muted); text-align:right; flex-shrink:0; }
+  .funnel-bar-wrap { flex:1; background:#21262d; border-radius:4px; height:26px; overflow:hidden; }
+  .funnel-bar { height:100%; border-radius:4px; display:flex; align-items:center; padding-left:8px; font-size:11px; font-weight:600; color:#fff; transition:width .8s cubic-bezier(.4,0,.2,1); }
+  .funnel-count { width:40px; font-family:'Space Mono'; font-size:11px; color:var(--text); text-align:right; flex-shrink:0; }
+  .funnel-pct { width:42px; font-size:10px; color:var(--muted); text-align:right; flex-shrink:0; }
+
+  /* ── TABLE ── */
+  .data-table { width:100%; border-collapse:collapse; font-size:12px; }
+  .data-table th { background:#21262d; color:var(--muted); font-size:10px; text-transform:uppercase; letter-spacing:.6px; padding:8px 12px; text-align:left; border-bottom:1px solid var(--border); font-weight:600; }
+  .data-table td { padding:8px 12px; border-bottom:1px solid #21262d; color:var(--text); }
+  .data-table tr:hover td { background:#21262d55; }
+  .pill { display:inline-block; padding:2px 8px; border-radius:20px; font-size:10px; font-weight:600; }
+  .pill.green  { background:#1a3a2a; color:var(--accent3); }
+  .pill.yellow { background:#3a2e1a; color:var(--accent5); }
+  .pill.red    { background:#3a1a1a; color:var(--accent2); }
+  .pill.blue   { background:#1a2a3a; color:var(--accent1); }
+
+  /* ── DONUT LEGEND ── */
+  .donut-legend { display:flex; flex-wrap:wrap; gap:10px; margin-top:12px; justify-content:center; }
+  .legend-item { display:flex; align-items:center; gap:6px; font-size:11px; color:var(--muted); }
+  .legend-dot  { width:10px; height:10px; border-radius:50%; flex-shrink:0; }
+
+  /* ── INSIGHTS ── */
+  .insights-grid { display:grid; grid-template-columns:1fr 1fr; gap:12px; }
+  @media(max-width:700px){ .insights-grid{ grid-template-columns:1fr; } }
+  .insight-card { background:var(--card); border:1px solid var(--border); border-radius:10px; padding:16px; border-left:3px solid; }
+  .insight-card.blue  { border-left-color:var(--accent1); }
+  .insight-card.green { border-left-color:var(--accent3); }
+  .insight-card.orange{ border-left-color:var(--accent5); }
+  .insight-card.purple{ border-left-color:var(--accent4); }
+  .insight-card.red   { border-left-color:var(--accent2); }
+  .insight-title { font-size:11px; font-weight:700; color:var(--muted); text-transform:uppercase; letter-spacing:.6px; margin-bottom:6px; }
+  .insight-text  { font-size:12px; color:var(--text); line-height:1.5; }
+
+  /* ── LOCATION BAR ── */
+  .loc-row { display:flex; align-items:center; gap:10px; margin-bottom:8px; }
+  .loc-name { width:80px; font-size:11px; color:var(--muted); }
+  .loc-bar-wrap { flex:1; background:#21262d; border-radius:3px; height:16px; }
+  .loc-bar { height:100%; border-radius:3px; }
+  .loc-pct { width:38px; font-family:'Space Mono'; font-size:10px; color:var(--text); text-align:right; }
+
+  /* ── SCROLLABLE TABLE ── */
+  .table-scroll { overflow-x:auto; }
+
+  /* ── SECTION TITLE ── */
+  .section-title { font-size:11px; font-weight:700; color:var(--muted); text-transform:uppercase; letter-spacing:1px; margin-bottom:14px; padding-bottom:8px; border-bottom:1px solid var(--border); }
+
+  /* ── QUALITY STARS ── */
+  .stars { color:#ffa657; font-size:12px; }
+
+  canvas { max-height: 220px; }
+</style>
+</head>
+<body>
+
+<!-- TOP BAR -->
+<div class="topbar">
+  <div class="topbar-left">
+    <div class="logo">TA</div>
+    <div class="brand">
+      <h1>Talent Acquisition Analytics Dashboard</h1>
+      <p>NovaTech Solutions Pvt. Ltd. &nbsp;|&nbsp; HR Analytics Division &nbsp;|&nbsp; FY 2024–25</p>
+    </div>
+  </div>
+  <div style="display:flex;gap:8px;align-items:center;">
+    <span class="badge"><span class="live-dot"></span>200 Candidates</span>
+    <span class="badge">Self-Initiated Project</span>
+  </div>
+</div>
+
+<!-- NAV TABS -->
+<div class="nav">
+  <div class="tab active" onclick="showPage('overview')">Overview</div>
+  <div class="tab" onclick="showPage('funnel')">Recruitment Funnel</div>
+  <div class="tab" onclick="showPage('diversity')">Diversity Audit</div>
+  <div class="tab" onclick="showPage('quality')">Quality of Hire</div>
+  <div class="tab" onclick="showPage('insights')">Key Insights</div>
+</div>
+
+<!-- ══════════════════════════════════════════════════════ PAGE: OVERVIEW -->
+<div class="page active" id="page-overview">
+  <!-- KPIs -->
+  <div class="kpi-grid">
+    <div class="kpi k1"><div class="kpi-label">Total Candidates</div><div class="kpi-value">200</div><div class="kpi-sub">FY 2024–25 pipeline</div></div>
+    <div class="kpi k2"><div class="kpi-label">Avg Time to Hire</div><div class="kpi-value">43.8<span style="font-size:13px;"> d</span></div><div class="kpi-sub">Target: ≤30 days</div></div>
+    <div class="kpi k3"><div class="kpi-label">Diversity Ratio</div><div class="kpi-value">48%</div><div class="kpi-sub">Target: ≥40% ✅</div></div>
+    <div class="kpi k4"><div class="kpi-label">Avg Quality Score</div><div class="kpi-value">3.72<span style="font-size:13px;">/5</span></div><div class="kpi-sub">Composite rating</div></div>
+    <div class="kpi k5"><div class="kpi-label">Offer Accept Rate</div><div class="kpi-value">67.5%</div><div class="kpi-sub">Industry avg: 65%</div></div>
+    <div class="kpi k6"><div class="kpi-label">Avg Salary (LPA)</div><div class="kpi-value">₹25.7</div><div class="kpi-sub">Across all depts</div></div>
+  </div>
+
+  <div class="grid-2">
+    <!-- Quarterly Trend -->
+    <div class="chart-card">
+      <div class="chart-title"><span class="dot" style="background:var(--accent1)"></span>Quarterly Hiring Trend</div>
+      <div class="chart-wrap"><canvas id="chartQuarterly"></canvas></div>
+    </div>
+    <!-- Source of Hire -->
+    <div class="chart-card">
+      <div class="chart-title"><span class="dot" style="background:var(--accent5)"></span>Candidates by Source</div>
+      <div class="chart-wrap"><canvas id="chartSource"></canvas></div>
+    </div>
+  </div>
+
+  <div class="grid-2">
+    <!-- Dept Quality -->
+    <div class="chart-card">
+      <div class="chart-title"><span class="dot" style="background:var(--accent4)"></span>Quality Score by Department</div>
+      <div class="chart-wrap"><canvas id="chartDeptQuality"></canvas></div>
+    </div>
+    <!-- Gender Donut -->
+    <div class="chart-card">
+      <div class="chart-title"><span class="dot" style="background:var(--accent3)"></span>Gender Distribution</div>
+      <div class="chart-wrap" style="max-width:200px;margin:0 auto;"><canvas id="chartGender"></canvas></div>
+      <div class="donut-legend" id="genderLegend"></div>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════════════════════ PAGE: FUNNEL -->
+<div class="page" id="page-funnel">
+  <div class="grid-2-1">
+    <div class="chart-card">
+      <div class="chart-title"><span class="dot" style="background:var(--accent1)"></span>Recruitment Funnel – Stage Progression</div>
+      <div class="funnel-wrap" id="funnelViz"></div>
+    </div>
+    <div class="chart-card">
+      <div class="chart-title"><span class="dot" style="background:var(--accent5)"></span>Drop-off Summary</div>
+      <div class="chart-wrap"><canvas id="chartDropoff"></canvas></div>
+    </div>
+  </div>
+
+  <div class="chart-card" style="margin-bottom:16px;">
+    <div class="chart-title"><span class="dot" style="background:var(--accent3)"></span>Source Performance Table</div>
+    <div class="table-scroll">
+      <table class="data-table" id="sourceTable"></table>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════════════════════ PAGE: DIVERSITY -->
+<div class="page" id="page-diversity">
+  <div class="grid-3">
+    <div class="chart-card">
+      <div class="chart-title"><span class="dot" style="background:var(--accent3)"></span>Gender Split</div>
+      <div class="chart-wrap" style="max-width:180px;margin:0 auto;"><canvas id="chartGender2"></canvas></div>
+      <div class="donut-legend" id="genderLegend2"></div>
+    </div>
+    <div class="chart-card">
+      <div class="chart-title"><span class="dot" style="background:var(--accent1)"></span>Diversity by Department</div>
+      <div class="chart-wrap"><canvas id="chartDeptDiv"></canvas></div>
+    </div>
+    <div class="chart-card">
+      <div class="chart-title"><span class="dot" style="background:var(--teal)"></span>Diversity % by Location</div>
+      <div id="locDiv"></div>
+    </div>
+  </div>
+
+  <div class="chart-card">
+    <div class="chart-title"><span class="dot" style="background:var(--accent5)"></span>Offer Acceptance by Gender</div>
+    <div class="chart-wrap"><canvas id="chartGenderOA"></canvas></div>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════════════════════ PAGE: QUALITY -->
+<div class="page" id="page-quality">
+  <div class="grid-2">
+    <div class="chart-card">
+      <div class="chart-title"><span class="dot" style="background:var(--accent4)"></span>Quality Score by Department</div>
+      <div class="chart-wrap"><canvas id="chartQuality2"></canvas></div>
+    </div>
+    <div class="chart-card">
+      <div class="chart-title"><span class="dot" style="background:var(--accent1)"></span>Quality Score by Source</div>
+      <div class="chart-wrap"><canvas id="chartSrcQuality"></canvas></div>
+    </div>
+  </div>
+  <div class="chart-card">
+    <div class="chart-title"><span class="dot" style="background:var(--accent3)"></span>Quality of Hire Trend (Quarterly)</div>
+    <div class="chart-wrap"><canvas id="chartQualityTrend"></canvas></div>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════════════════════ PAGE: INSIGHTS -->
+<div class="page" id="page-insights">
+  <div class="section-title">💡 Key Findings & Recommendations</div>
+  <div class="insights-grid">
+    <div class="insight-card blue">
+      <div class="insight-title">🎯 Funnel Efficiency</div>
+      <div class="insight-text">Interview L2 stage has the highest drop-off. Recommend implementing structured interview scorecards and calibration sessions to reduce subjective rejections. Current L1→L2 conversion: <strong>79%</strong>, L2→Offer: <strong>70%</strong>.</div>
+    </div>
+    <div class="insight-card green">
+      <div class="insight-title">🌍 Diversity Performance</div>
+      <div class="insight-text">Diversity ratio at <strong>48%</strong> exceeds the 40% target. Chennai is below benchmark at 28.3% — focus campus drives and women-in-tech job boards in that location.</div>
+    </div>
+    <div class="insight-card orange">
+      <div class="insight-title">⏱ Time to Hire</div>
+      <div class="insight-text">Avg TTH is <strong>43.8 days</strong> vs 30-day target. Recruitment Agency channel is fastest at 37.9 days. Consider building talent pools in advance for high-volume departments.</div>
+    </div>
+    <div class="insight-card purple">
+      <div class="insight-title">⭐ Quality of Hire</div>
+      <div class="insight-text">Marketing scores highest at <strong>4.07/5</strong>. Campus hiring shows top quality score (4.0) with lower TTH — increase campus recruitment budget for FY25–26.</div>
+    </div>
+    <div class="insight-card red">
+      <div class="insight-title">💰 Offer Acceptance</div>
+      <div class="insight-text">Overall offer acceptance at <strong>67.5%</strong>. Female candidate acceptance is lower — investigate compensation equity and workplace flexibility to close the gap.</div>
+    </div>
+    <div class="insight-card blue" style="border-left-color:var(--teal)">
+      <div class="insight-title">🏆 Best Source</div>
+      <div class="insight-text">Campus hiring delivers highest quality score (4.0) and Recruitment Agency delivers fastest TTH (37.9 days). Hybrid strategy: use agencies for speed-critical roles and campus for quality-first roles.</div>
+    </div>
+  </div>
+</div>
+
+<script>
+// ── DATA ──────────────────────────────────────────────────────────────────────
+const QUARTERS = ['Q1 FY24','Q2 FY24','Q3 FY24','Q4 FY24','Q1 FY25','Q2 FY25'];
+const Q_APPS   = [25, 36, 32, 45, 41, 21];
+const Q_TTH    = [43.3, 39.2, 45.4, 43.8, 47.1, 43.2];
+const Q_QUAL   = [3.6, 3.6, 3.8, 3.7, 3.7, 4.1];
+
+const SOURCES  = ['Campus','Direct Apply','Employee Referral','Job Portal','LinkedIn','Naukri','Recruitment Agency'];
+const SRC_CNT  = [25, 31, 31, 32, 19, 29, 33];
+const SRC_TTH  = [41.0, 44.7, 44.6, 47.1, 42.6, 48.1, 37.9];
+const SRC_QUAL = [4.0, 3.5, 3.8, 3.8, 3.5, 3.7, 3.6];
+
+const DEPTS    = ['Cust. Success','Engineering','Finance','HR','Marketing','Operations','Product','Sales'];
+const D_QUAL   = [3.78, 3.52, 3.39, 3.80, 4.07, 3.53, 3.77, 3.85];
+const D_TTH    = [48.3, 43.0, 43.8, 46.4, 44.9, 40.2, 40.6, 43.0];
+const D_CNT    = [26, 26, 23, 22, 23, 26, 19, 35];
+
+const FUNNEL   = {Applied:200,Screened:174,'Interview L1':149,'Interview L2':118,'Offer Extended':83,'Offer Accepted':56,Joined:30};
+const GENDERS  = ['Female','Male','Non-Binary'];
+const G_CNT    = [83, 104, 13];
+
+const LOCS     = ['Bangalore','Chennai','Delhi','Hyderabad','Mumbai','Pune'];
+const L_DIV    = [60.9, 28.3, 53.1, 51.5, 57.9, 46.4];
+
+// ── COLORS ───────────────────────────────────────────────────────────────────
+const C = ['#58a6ff','#3fb950','#ffa657','#d2a8ff','#39d0d8','#f78166','#79c0ff'];
+const chartDefaults = {
+  plugins: { legend:{ display:false } },
+  scales: {
+    x: { grid:{ color:'#21262d' }, ticks:{ color:'#8b949e', font:{size:10} } },
+    y: { grid:{ color:'#21262d' }, ticks:{ color:'#8b949e', font:{size:10} } }
+  }
+};
+
+// ── HELPERS ───────────────────────────────────────────────────────────────────
+function showPage(id) {
+  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+  document.getElementById('page-'+id).classList.add('active');
+  event.target.classList.add('active');
+}
+
+function makeChart(id, type, labels, datasets, extraOptions={}) {
+  const ctx = document.getElementById(id);
+  if (!ctx) return;
+  return new Chart(ctx, {
+    type,
+    data: { labels, datasets },
+    options: { ...chartDefaults, responsive:true, maintainAspectRatio:true, ...extraOptions }
+  });
+}
+
+// ── OVERVIEW CHARTS ───────────────────────────────────────────────────────────
+// Quarterly
+makeChart('chartQuarterly','bar', QUARTERS,
+  [{ label:'Applications', data:Q_APPS, backgroundColor:'#58a6ff55', borderColor:'#58a6ff', borderWidth:2, borderRadius:4 }],
+  { plugins:{ legend:{display:false} }, scales:{ x:{grid:{color:'#21262d'},ticks:{color:'#8b949e',font:{size:10}}}, y:{grid:{color:'#21262d'},ticks:{color:'#8b949e',font:{size:10}}} } }
+);
+
+// Source Bar
+makeChart('chartSource','bar', SOURCES,
+  [{ label:'Count', data:SRC_CNT, backgroundColor:C.map(c=>c+'88'), borderColor:C, borderWidth:2, borderRadius:4 }],
+  { plugins:{legend:{display:false}}, scales:{x:{grid:{color:'#21262d'},ticks:{color:'#8b949e',font:{size:9}}}, y:{grid:{color:'#21262d'},ticks:{color:'#8b949e',font:{size:10}}}}, indexAxis:'y' }
+);
+
+// Dept Quality
+makeChart('chartDeptQuality','bar', DEPTS,
+  [{ label:'Avg Quality', data:D_QUAL, backgroundColor:'#d2a8ff66', borderColor:'#d2a8ff', borderWidth:2, borderRadius:4 }],
+  { plugins:{legend:{display:false}}, scales:{x:{grid:{color:'#21262d'},ticks:{color:'#8b949e',font:{size:9}}}, y:{min:3.0,max:4.5,grid:{color:'#21262d'},ticks:{color:'#8b949e',font:{size:10}}}}}
+);
+
+// Gender Donut
+function makeDonut(canvasId, legendId, labels, data, colors) {
+  new Chart(document.getElementById(canvasId), {
+    type:'doughnut',
+    data:{ labels, datasets:[{ data, backgroundColor:colors, borderColor:'#1c2128', borderWidth:3 }] },
+    options:{ responsive:true, plugins:{ legend:{display:false} }, cutout:'68%' }
+  });
+  const wrap = document.getElementById(legendId);
+  if(wrap) labels.forEach((l,i) => {
+    const pct = Math.round(data[i]/data.reduce((a,b)=>a+b,0)*100);
+    wrap.innerHTML += `<div class="legend-item"><div class="legend-dot" style="background:${colors[i]}"></div>${l} (${pct}%)</div>`;
+  });
+}
+makeDonut('chartGender','genderLegend', GENDERS, G_CNT, ['#f78166','#58a6ff','#d2a8ff']);
+
+// ── FUNNEL PAGE ───────────────────────────────────────────────────────────────
+const funnelColors = ['#58a6ff','#39d0d8','#3fb950','#ffa657','#d2a8ff','#f78166','#79c0ff'];
+const funnelWrap = document.getElementById('funnelViz');
+const maxVal = 200;
+Object.entries(FUNNEL).forEach(([stage, val], i) => {
+  const pct = Math.round(val/200*100);
+  funnelWrap.innerHTML += `
+    <div class="funnel-row">
+      <div class="funnel-label">${stage}</div>
+      <div class="funnel-bar-wrap">
+        <div class="funnel-bar" style="width:${val/maxVal*100}%;background:${funnelColors[i]};">${val}</div>
+      </div>
+      <div class="funnel-pct">${pct}%</div>
+    </div>`;
+});
+
+// Dropoff chart
+const dropoffs = [26,25,31,35,27,26];
+const dropLabels = ['App→Screen','Screen→L1','L1→L2','L2→Offer','Offer→Accept','Accept→Join'];
+makeChart('chartDropoff','bar', dropLabels,
+  [{ label:'Drop-off', data:dropoffs, backgroundColor:'#f7816655', borderColor:'#f78166', borderWidth:2, borderRadius:4 }],
+  { plugins:{legend:{display:false}}, scales:{x:{grid:{color:'#21262d'},ticks:{color:'#8b949e',font:{size:9}}}, y:{grid:{color:'#21262d'},ticks:{color:'#8b949e',font:{size:10}}}}, indexAxis:'y' }
+);
+
+// Source Table
+const tbl = document.getElementById('sourceTable');
+tbl.innerHTML = `<thead><tr><th>Source</th><th>Candidates</th><th>Avg TTH (days)</th><th>Avg Quality</th><th>Verdict</th></tr></thead>`;
+const tbody = document.createElement('tbody');
+const verdicts = ['🏆 Best Quality','⚠️ Monitor','✅ Good','✅ Good','⚠️ Monitor','⚠️ Monitor','⚡ Fastest'];
+SOURCES.forEach((s,i) => {
+  const tr = document.createElement('tr');
+  const pillClass = verdicts[i].includes('🏆')||verdicts[i].includes('✅') ? 'green' : verdicts[i].includes('⚡') ? 'blue' : 'yellow';
+  tr.innerHTML = `<td>${s}</td><td style="font-family:'Space Mono';font-size:11px;">${SRC_CNT[i]}</td><td>${SRC_TTH[i]}d</td><td>${SRC_QUAL[i]}/5</td><td><span class="pill ${pillClass}">${verdicts[i]}</span></td>`;
+  tbody.appendChild(tr);
+});
+tbl.appendChild(tbody);
+
+// ── DIVERSITY PAGE ─────────────────────────────────────────────────────────────
+makeDonut('chartGender2','genderLegend2', GENDERS, G_CNT, ['#f78166','#58a6ff','#d2a8ff']);
+
+// Dept Diversity
+const deptDivData = [53.8, 46.2, 47.8, 50.0, 60.9, 46.2, 52.6, 42.9];
+makeChart('chartDeptDiv','bar', DEPTS,
+  [{ label:'Diversity %', data:deptDivData, backgroundColor:'#3fb95066', borderColor:'#3fb950', borderWidth:2, borderRadius:4 }],
+  { plugins:{legend:{display:false}}, scales:{x:{grid:{color:'#21262d'},ticks:{color:'#8b949e',font:{size:9}}}, y:{min:30,max:70,grid:{color:'#21262d'},ticks:{color:'#8b949e',font:{size:10},callback:v=>v+'%'}}} }
+);
+
+// Location diversity bars
+const locWrap = document.getElementById('locDiv');
+const maxDiv = Math.max(...L_DIV);
+const locColors = ['#58a6ff','#f78166','#3fb950','#39d0d8','#ffa657','#d2a8ff'];
+LOCS.forEach((l,i) => {
+  const isLow = L_DIV[i] < 40;
+  locWrap.innerHTML += `
+    <div class="loc-row">
+      <div class="loc-name">${l}</div>
+      <div class="loc-bar-wrap"><div class="loc-bar" style="width:${L_DIV[i]/maxDiv*100}%;background:${isLow?'#f78166':locColors[i]};"></div></div>
+      <div class="loc-pct">${L_DIV[i]}%</div>
+    </div>`;
+});
+
+// Gender Offer Acceptance
+makeChart('chartGenderOA','bar', GENDERS,
+  [
+    { label:'Offers Made',    data:[28,47,8],  backgroundColor:'#58a6ff55', borderColor:'#58a6ff', borderWidth:2, borderRadius:4 },
+    { label:'Offer Accepted', data:[19,33,4],  backgroundColor:'#3fb95055', borderColor:'#3fb950', borderWidth:2, borderRadius:4 },
+  ],
+  { plugins:{legend:{display:true, labels:{color:'#8b949e',font:{size:11}}}}, scales:{x:{grid:{color:'#21262d'},ticks:{color:'#8b949e'}}, y:{grid:{color:'#21262d'},ticks:{color:'#8b949e'}}} }
+);
+
+// ── QUALITY PAGE ──────────────────────────────────────────────────────────────
+makeChart('chartQuality2','bar', DEPTS,
+  [{ label:'Avg Quality', data:D_QUAL, backgroundColor:D_QUAL.map(v=>v>=4?'#3fb95088':'#d2a8ff66'), borderColor:D_QUAL.map(v=>v>=4?'#3fb950':'#d2a8ff'), borderWidth:2, borderRadius:4 }],
+  { plugins:{legend:{display:false}}, scales:{x:{grid:{color:'#21262d'},ticks:{color:'#8b949e',font:{size:9}}}, y:{min:3.0,max:4.5,grid:{color:'#21262d'},ticks:{color:'#8b949e'}}} }
+);
+
+makeChart('chartSrcQuality','bar', SOURCES,
+  [{ label:'Avg Quality', data:SRC_QUAL, backgroundColor:'#ffa65766', borderColor:'#ffa657', borderWidth:2, borderRadius:4 }],
+  { plugins:{legend:{display:false}}, scales:{x:{grid:{color:'#21262d'},ticks:{color:'#8b949e',font:{size:9}}}, y:{min:3.0,max:4.5,grid:{color:'#21262d'},ticks:{color:'#8b949e'}}}, indexAxis:'y' }
+);
+
+makeChart('chartQualityTrend','line', QUARTERS,
+  [{ label:'Avg Quality Score', data:Q_QUAL, borderColor:'#d2a8ff', backgroundColor:'#d2a8ff22', fill:true, tension:.4, pointBackgroundColor:'#d2a8ff', pointRadius:5 }],
+  { plugins:{legend:{display:false}}, scales:{x:{grid:{color:'#21262d'},ticks:{color:'#8b949e'}}, y:{min:3.3,max:4.3,grid:{color:'#21262d'},ticks:{color:'#8b949e'}}} }
+);
+</script>
+</body>
+</html>
